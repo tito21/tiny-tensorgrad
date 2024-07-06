@@ -138,11 +138,11 @@ class Tensor:
 
         return out
 
-    def sum(self):
-        out = Tensor(np.sum(self.data), prev=(self,), op="sum")
+    def sum(self, axis=None, keepdims=False):
+        out = Tensor(np.sum(self.data, axis=axis, keepdims=keepdims), prev=(self,), op="sum")
 
         def _backward():
-            self.grad += out.grad
+            self.grad += np.expand_dims(out.grad, axis=axis if axis else ())
 
         out._backward_func = _backward
 
@@ -167,6 +167,56 @@ class Tensor:
         out._backward_func = _backward
 
         return out
+
+    def exp(self):
+        out = Tensor(np.exp(self.data), prev=(self,), op="exp")
+
+        def _backward():
+            self.grad += out.data * out.grad
+
+        out._backward_func = _backward
+
+        return out
+
+    def log(self):
+        out = Tensor(np.log(self.data), prev=(self,), op="log")
+
+        def _backward():
+            self.grad += (1.0 / self.data) * out.grad
+
+        out._backward_func = _backward
+
+        return out
+
+    def sigmoid(self):
+        out = Tensor(1.0 / (1 + np.exp(-self.data)), prev=(self,), op="sigmoid")
+
+        def _backward():
+            self.grad += out.data * (1.0 - out.data) * out.grad
+
+        out._backward_func = _backward
+
+        return out
+
+    def softmax(self, axis=-1):
+        def sm(x):
+            exp_in = np.exp(x - x.max(axis, keepdims=True))
+            denominator = np.sum(exp_in, axis, keepdims=True)
+            return exp_in / denominator
+
+        out = Tensor(sm(self.data), prev=(self,), op="softmax")
+
+        def _backward():
+            bs_grads = []
+            for bs in range(self.shape[0]):
+                x_grad = (np.diag(out.data[bs]) - np.outer(out.data[bs], out.data[bs]))
+                bs_grads.append(x_grad @ out.grad[bs].T)
+            self.grad += np.stack(bs_grads)
+
+        out._backward_func = _backward
+
+        return out
+
 # Drawing utils
 def trace(root: Tensor):
     nodes, edges = set(), set()

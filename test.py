@@ -90,6 +90,16 @@ class TestOp(unittest.TestCase):
         out_torch = a.sum()
         self.assertTrue(np.allclose(out.data, out_torch.numpy()))
 
+    def test_sum_axis(self):
+        a = Tensor(np.random.rand(*SHAPE))
+
+        out = a.sum(-1)
+
+        a = torch.from_numpy(a.data)
+
+        out_torch = a.sum(-1)
+        self.assertTrue(np.allclose(out.data, out_torch.numpy()))
+
     def test_tanh(self):
         a = Tensor(np.random.rand(*SHAPE))
 
@@ -108,6 +118,46 @@ class TestOp(unittest.TestCase):
         a = torch.from_numpy(a.data)
 
         out_torch = a.relu()
+        self.assertTrue(np.allclose(out.data, out_torch.numpy()))
+
+    def test_exp(self):
+        a = Tensor(np.random.rand(*SHAPE))
+
+        out = a.exp()
+
+        a = torch.from_numpy(a.data)
+
+        out_torch = a.exp()
+        self.assertTrue(np.allclose(out.data, out_torch.numpy()))
+
+    def test_log(self):
+        a = Tensor(np.random.rand(*SHAPE))
+
+        out = a.log()
+
+        a = torch.from_numpy(a.data)
+
+        out_torch = a.log()
+        self.assertTrue(np.allclose(out.data, out_torch.numpy()))
+
+    def test_sigmoid(self):
+        a = Tensor(np.random.rand(*SHAPE))
+
+        out = a.sigmoid()
+
+        a = torch.from_numpy(a.data)
+
+        out_torch = a.sigmoid()
+        self.assertTrue(np.allclose(out.data, out_torch.numpy()))
+
+    def test_softmax(self):
+        a = Tensor(np.random.rand(*SHAPE))
+
+        out = a.softmax(-1)
+
+        a = torch.from_numpy(a.data)
+
+        out_torch = a.softmax(-1)
         self.assertTrue(np.allclose(out.data, out_torch.numpy()))
 
 class TestGrad(unittest.TestCase):
@@ -162,7 +212,6 @@ class TestGrad(unittest.TestCase):
         out_torch.backward(gradient=torch.ones_like(out_torch))
 
         self.assertTrue(np.allclose(a.grad, a_torch.grad.numpy()) and np.allclose(b.grad, b_torch.grad.numpy()))
-
 
     def test_pow(self):
         a = Tensor(np.random.rand(*SHAPE))
@@ -233,6 +282,23 @@ class TestGrad(unittest.TestCase):
 
         self.assertTrue(np.allclose(a.grad, a_torch.grad.numpy()) and np.allclose(b.grad, b_torch.grad.numpy()))
 
+    def test_sum_axis(self):
+        a = Tensor(np.random.rand(*SHAPE))
+        b = Tensor(np.random.rand(*reversed(SHAPE)))
+
+        out = (a @ b).sum(-1)
+        out.backward()
+
+        a_torch = torch.from_numpy(a.data)
+        a_torch.requires_grad = True
+        b_torch = torch.from_numpy(b.data)
+        b_torch.requires_grad = True
+
+        out_torch = (a_torch @ b_torch).sum(-1)
+        out_torch.backward(gradient=torch.ones_like(out_torch))
+
+        self.assertTrue(np.allclose(a.grad, a_torch.grad.numpy()) and np.allclose(b.grad, b_torch.grad.numpy()))
+
     def test_tanh(self):
         a = Tensor(np.random.rand(*SHAPE))
         b = Tensor(np.random.rand(*reversed(SHAPE)))
@@ -263,6 +329,74 @@ class TestGrad(unittest.TestCase):
         b_torch.requires_grad = True
 
         out_torch = (a_torch @ b_torch).relu()
+        out_torch.backward(gradient=torch.ones_like(out_torch))
+
+        self.assertTrue(np.allclose(a.grad, a_torch.grad.numpy()) and np.allclose(b.grad, b_torch.grad.numpy()))
+
+    def test_exp(self):
+        a = Tensor(np.random.rand(*SHAPE))
+        b = Tensor(np.random.rand(*reversed(SHAPE)))
+
+        out = (a @ b).exp()
+        out.backward()
+
+        a_torch = torch.from_numpy(a.data)
+        a_torch.requires_grad = True
+        b_torch = torch.from_numpy(b.data)
+        b_torch.requires_grad = True
+
+        out_torch = (a_torch @ b_torch).exp()
+        out_torch.backward(gradient=torch.ones_like(out_torch))
+
+        self.assertTrue(np.allclose(a.grad, a_torch.grad.numpy()) and np.allclose(b.grad, b_torch.grad.numpy()))
+
+    def test_log(self):
+        a = Tensor(np.random.rand(*SHAPE))
+        b = Tensor(np.random.rand(*reversed(SHAPE)))
+
+        out = (a @ b).log()
+        out.backward()
+
+        a_torch = torch.from_numpy(a.data)
+        a_torch.requires_grad = True
+        b_torch = torch.from_numpy(b.data)
+        b_torch.requires_grad = True
+
+        out_torch = (a_torch @ b_torch).log()
+        out_torch.backward(gradient=torch.ones_like(out_torch))
+
+        self.assertTrue(np.allclose(a.grad, a_torch.grad.numpy()) and np.allclose(b.grad, b_torch.grad.numpy()))
+
+    def test_sigmoid(self):
+        a = Tensor(np.random.rand(*SHAPE))
+        b = Tensor(np.random.rand(*reversed(SHAPE)))
+
+        out = (a @ b).sigmoid()
+        out.backward()
+
+        a_torch = torch.from_numpy(a.data)
+        a_torch.requires_grad = True
+        b_torch = torch.from_numpy(b.data)
+        b_torch.requires_grad = True
+
+        out_torch = (a_torch @ b_torch).sigmoid()
+        out_torch.backward(gradient=torch.ones_like(out_torch))
+
+        self.assertTrue(np.allclose(a.grad, a_torch.grad.numpy()) and np.allclose(b.grad, b_torch.grad.numpy()))
+
+    def test_softmax(self):
+        a = Tensor(np.random.rand(*SHAPE))
+        b = Tensor(np.random.rand(*reversed(SHAPE)))
+
+        out = (a @ b).softmax(-1)
+        out.backward()
+
+        a_torch = torch.from_numpy(a.data)
+        a_torch.requires_grad = True
+        b_torch = torch.from_numpy(b.data)
+        b_torch.requires_grad = True
+
+        out_torch = (a_torch @ b_torch).softmax(-1)
         out_torch.backward(gradient=torch.ones_like(out_torch))
 
         self.assertTrue(np.allclose(a.grad, a_torch.grad.numpy()) and np.allclose(b.grad, b_torch.grad.numpy()))

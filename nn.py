@@ -15,7 +15,7 @@ class Sequential(Module):
     def __init__(self, *modules):
         self.modules = modules
 
-    def __call__(self, x):
+    def __call__(self, x: Tensor):
         for m in self.modules:
             x = m(x)
         return x
@@ -49,12 +49,26 @@ class Tanh(Module):
     def __init__(self):
         pass
 
-    def __call__(self, x):
+    def __call__(self, x: Tensor):
         return x.tanh()
 
 class ReLU(Module):
     def __init__(self):
         pass
 
-    def __call__(self, x):
+    def __call__(self, x: Tensor):
         return x.relu()
+class Sigmoid(Module):
+    def __init__(self):
+        pass
+
+    def __call__(self, x: Tensor):
+        return x.sigmoid()
+
+class Softmax(Module):
+    def __init__(self):
+        pass
+
+    def __call__(self, x: Tensor):
+        return x.softmax()
+
