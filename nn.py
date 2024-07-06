@@ -70,5 +70,5 @@ class Softmax(Module):
         pass
 
     def __call__(self, x: Tensor):
-        return x.softmax()
+        return x.softmax(-1)
 

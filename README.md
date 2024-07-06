@@ -13,7 +13,8 @@ learning tool.
 
 ## Demo
 
-The file `demo.ipynb` has a demo classification problem.
+The file `demo.ipynb` has a demo classification problem. And in
+`demo-mnist.ipynb` a demo of classifying MNIST digits.
 
 ## Test
 
@@ -23,6 +24,6 @@ Run test against pytorch
 
 ## TODO
 
-- [ ] Add sigmoid, softmax and train with cross entropy
+- [x] Add sigmoid, softmax and train with cross entropy
 - [ ] Add convolutional layers
-- [ ] Test on MNIST
+- [x] Test on MNIST
