@@ -25,7 +25,7 @@ class Tensor:
     def __repr__(self):
         return f"Label: {self.label} data {self.data}, grad {self.grad} op {self.op}"
 
-    def backward(self):
+    def backward(self, gradient=None):
         topo = []
         visited = set()
         def build_topo(v):
@@ -36,7 +36,7 @@ class Tensor:
                 topo.append(v)
         build_topo(self)
 
-        self.grad = np.ones_like(self.data)
+        self.grad = np.ones_like(self.data) if gradient is None else gradient
         for n in reversed(topo):
             # print("tree grad", n.label, n.grad)
             n._backward_func()
@@ -239,7 +239,7 @@ def draw_dot(root, format='svg', rankdir='LR'):
     dot = Digraph(format=format, graph_attr={'rankdir': rankdir}) #, node_attr={'rankdir': 'TB'})
 
     for n in nodes:
-        dot.node(name=str(id(n)), label =f"{{ {n.label } | {n.shape} }}", shape='record')
+        dot.node(name=str(id(n)), label =f"{{ {n.label} | {n.data if n.shape == tuple() else n.shape} | grad: {np.linalg.norm(n.grad)}}}", shape='record')
         if n.op:
             dot.node(name=str(id(n)) + n.op, label=n.op)
             dot.edge(str(id(n)) + n.op, str(id(n)))
