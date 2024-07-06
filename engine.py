@@ -82,10 +82,21 @@ class Tensor:
         return -1 * self
 
     def __sub__(self, other):
-        return self + (-other)
+        other = other if isinstance(other, Tensor) else Tensor(other)
+
+        out = Tensor(self.data - other.data, prev=(self, other), op="+")
+
+        def _backward():
+            self.grad += sum_if_need(self.grad.shape, out.grad)
+            other.grad += sum_if_need(other.grad.shape, -out.grad)
+
+        out._backward_func = _backward
+
+        return out
 
     def __rsub__(self, other):
-        return self + (-other)
+        other = other if isinstance(other, Tensor) else Tensor(other)
+        return other - self
 
     def __mul__(self, other):
         other = other if isinstance(other, Tensor) else Tensor(other)
