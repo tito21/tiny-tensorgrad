@@ -76,7 +76,8 @@ class Tensor:
         return out
 
     def __radd__(self, other):
-        return self + other
+        other = other if isinstance(other, Tensor) else Tensor(other)
+        return other + self
 
     def __neg__(self):
         return -1 * self
@@ -250,7 +251,7 @@ def draw_dot(root, format='svg', rankdir='LR'):
     dot = Digraph(format=format, graph_attr={'rankdir': rankdir}) #, node_attr={'rankdir': 'TB'})
 
     for n in nodes:
-        dot.node(name=str(id(n)), label =f"{{ {n.label} | {n.data if n.shape == tuple() else n.shape} | grad: {np.linalg.norm(n.grad)}}}", shape='record')
+        dot.node(name=str(id(n)), label =f"{{ {n.label} | {n.data if n.shape == tuple() else n.shape} | grad norm: {np.linalg.norm(n.grad)}}}", shape='record')
         if n.op:
             dot.node(name=str(id(n)) + n.op, label=n.op)
             dot.edge(str(id(n)) + n.op, str(id(n)))
