@@ -1,5 +1,8 @@
+from typing import Sequence
 
+import math
 import numpy as np
+from scipy.signal import convolve2d, correlate2d
 from graphviz import Digraph
 
 def sum_if_need(out_shape, in_data):
@@ -139,7 +142,7 @@ class Tensor:
 
         other = other if isinstance(other, Tensor) else Tensor(other)
 
-        assert self.data.shape[-1] == other.data.shape[0]
+        assert self.data.shape[-1] == other.data.shape[0], "Incompatible shapes for matmul"
         out = Tensor(self.data @ other.data, prev=(self, other), op="@")
 
         def _backward():
@@ -150,11 +153,104 @@ class Tensor:
 
         return out
 
+    def convolve2d(self, f, stride=(1, 1)):
+
+        assert isinstance(f, Tensor), "Filter must be a tensor"
+        assert f.data.ndim == 4, "Filter must have shape (channels_out, channels_in, kx, ky)"
+        assert f.shape[1] == self.shape[1], "Filter must have the same number of channels as the tensor"
+        assert self.data.ndim == 4, "To perform convolution the tensor must have dimensions (batch, channels_in, x, y)"
+
+        def __stride_input(inputs, kx, ky):
+                batch_size, channels, h, w = inputs.shape
+                batch_stride, channel_stride, rows_stride, columns_stride = inputs.data.strides
+                out_h = ((h - kx) // stride[0]) + 1
+                out_w = ((w - ky) // stride[1]) + 1
+                new_shape = (batch_size,
+                            channels,
+                            out_h,
+                            out_w,
+                            kx,
+                            ky)
+                new_strides = (batch_stride,
+                            channel_stride,
+                            stride[0] * rows_stride,
+                            stride[1] * columns_stride,
+                            rows_stride,
+                            columns_stride)
+
+                return np.lib.stride_tricks.as_strided(inputs, new_shape, new_strides)
+
+        def correlate(inputs, filters):
+            input_windows = __stride_input(inputs, filters.shape[2], filters.shape[3])
+            output = np.einsum('bchwkt,fckt->bfhw', input_windows, filters, optimize=True)
+            return output
+
+        out = correlate(self.data, f.data)
+        out = Tensor(out, prev=(self, f), op="conv2d")
+
+        def _backward():
+            # out.grad.shape (bs, channels_out, ((h - kx) // stride[0]) + 1, ((w - ky) // stride[1]) + 1)
+            _, _, h, w = self.shape
+            _, _, kx, ky = f.shape
+            # pad_h = math.ceil(((h - 1)*stride[0] + kx - h) / 2)
+            # pad_w = math.ceil(((w - 1)*stride[1] + ky - w) / 2)
+            pad_h = (h - 1)*stride[0] + kx - h
+            pad_w = (w - 1)*stride[1] + ky - w
+            padded_grad = np.pad(out.grad.copy(), ((0, 0), (0, 0), (pad_h, pad_h), (pad_w, pad_w)))
+            self.grad += correlate(padded_grad, f.data[:, :, ::-1, ::-1].transpose(1, 0, 2, 3))
+
+            input_windows = __stride_input(self.data, out.grad.shape[2], out.grad.shape[3])
+            f.grad += np.einsum('bchwkt,bfkt->fchw', input_windows, out.grad, optimize=True)
+
+
+        out._backward_func = _backward
+
+        return out
+
+    def convolve2d_slow_single_channel(self, f):
+
+        f = f if isinstance(f, Tensor) else Tensor(f)
+
+        assert self.data.ndim == 3, "To perform convolution the tensor must have dimensions (batch, x, y)"
+
+        out = np.stack([correlate2d(self.data[i, :, :], f.data, mode='valid') for i in range(self.shape[0])])
+        out = Tensor(out, prev=(self, f), op="conv2d")
+
+        def _backward():
+            self.grad += np.stack([correlate2d(out.grad[i, :, :], f.data[::-1, ::-1], mode='full') for i in range(self.shape[0])])
+            f.grad += np.sum(np.stack([correlate2d(self.data[i, :, :], out.grad[i, :, :], mode='valid') for i in range(self.shape[0])]), 0)
+
+        out._backward_func = _backward
+
+        return out
+
+    @staticmethod
+    def stack(tensors, axis=0):
+        out = Tensor(np.stack([t.data for t in tensors], axis), prev=tuple(tensors), op="stack")
+
+        def _backward():
+            for i, t in enumerate(tensors):
+                t.grad += out.grad.take(i, axis=axis)
+
+        out._backward_func = _backward
+
+        return out
+
     def sum(self, axis=None, keepdims=False):
         out = Tensor(np.sum(self.data, axis=axis, keepdims=keepdims), prev=(self,), op="sum")
 
         def _backward():
             self.grad += np.expand_dims(out.grad, axis=axis if axis else ())
+
+        out._backward_func = _backward
+
+        return out
+
+    def reshape(self, new_shape):
+        out = Tensor(np.reshape(self.data.copy(), new_shape), prev=(self,), op="reshape")
+
+        def _backward():
+            self.grad += np.reshape(out.grad.copy(), self.grad.shape)
 
         out._backward_func = _backward
 
