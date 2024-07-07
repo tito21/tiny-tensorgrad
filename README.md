@@ -25,5 +25,6 @@ Run test against pytorch
 ## TODO
 
 - [x] Add sigmoid, softmax and train with cross entropy
-- [ ] Add convolutional layers
+- [x] Add convolutional layers
 - [x] Test on MNIST
+- [ ] Add optimizers
