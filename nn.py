@@ -55,9 +55,9 @@ class Conv2d(Module):
         self.use_bias = use_bias
         self.name = name
 
-        self.weights = Tensor.stack([Tensor(2*np.random.rand(channels_in, *kernel_size) - 1, label=name+f" Weight {k}") for k in range(channels_out)])
+        self.weights = Tensor(2*np.random.rand(channels_out, channels_in, *kernel_size) - 1, label=name+" Weight")
         if use_bias:
-            self.bias = Tensor(2*np.random.rand(1, channels_out, 1, 1) - 1, label=name+f" bias")
+            self.bias = Tensor(2*np.random.rand(1, channels_out, 1, 1) - 1, label=name+" bias")
 
     def __call__(self, x: Sequence[Tensor]) -> List[Tensor]:
 
