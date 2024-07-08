@@ -70,6 +70,17 @@ class TestOp(unittest.TestCase):
         out_torch = a**b
         self.assertTrue(np.allclose(out.data, out_torch.numpy()))
 
+    def test_getitem(self):
+        a = Tensor(np.random.rand(*SHAPE))
+
+        out = a[:, 3]
+
+        a = torch.from_numpy(a.data)
+
+        out_torch = a[:, 3]
+
+        self.assertTrue(np.allclose(out.data, out_torch.numpy()))
+
     def test_matmul(self):
         a = Tensor(np.random.rand(*SHAPE))
         b = Tensor(np.random.rand(*reversed(SHAPE)))
@@ -293,6 +304,22 @@ class TestGrad(unittest.TestCase):
 
         self.assertTrue(np.allclose(a.grad, a_torch.grad.numpy()))
 
+    def test_getitem(self):
+        a = Tensor(np.random.rand(*SHAPE))
+        b = Tensor(np.random.rand(*reversed(SHAPE)))
+
+        out = (a @ b)[:, 3]
+        out.backward()
+
+        a_torch = torch.from_numpy(a.data)
+        a_torch.requires_grad = True
+        b_torch = torch.from_numpy(b.data)
+        b_torch.requires_grad = True
+
+        out_torch = (a_torch @ b_torch)[:, 3]
+        out_torch.backward(gradient=torch.ones_like(out_torch))
+
+        self.assertTrue(np.allclose(a.grad, a_torch.grad.numpy()) and np.allclose(b.grad, b_torch.grad.numpy()))
 
     def test_matmul(self):
         a = Tensor(np.random.rand(*SHAPE))
@@ -300,7 +327,6 @@ class TestGrad(unittest.TestCase):
 
         out = a @ b
         out.backward()
-
 
         a_torch = torch.from_numpy(a.data)
         a_torch.requires_grad = True

@@ -1,7 +1,7 @@
 # Tiny-tensorgrad
 
-A tiny deep learning framework using numpy as backend. It has a matrix (only 2D)
-autograd engine inspired by Andrej Karpathy's
+A tiny deep learning framework using numpy as backend. It has a tensor autograd
+engine inspired by Andrej Karpathy's
 [micrograd](https://github.com/karpathy/micrograd) and a pytorch like API
 
 ![Results of a simple classification problem](demo.png)
@@ -27,4 +27,4 @@ Run test against pytorch
 - [x] Add sigmoid, softmax and train with cross entropy
 - [x] Add convolutional layers
 - [x] Test on MNIST
-- [ ] Add optimizers
+- [x] Add optimizers

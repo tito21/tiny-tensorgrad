@@ -12,8 +12,6 @@ class Optim:
         for p in self.parameters:
             p.zero_grad()
 
-
-
 class SGD(Optim):
     def __init__(self, parameters: Sequence[Tensor], lr: float, momentum=0.0):
         super().__init__(parameters)

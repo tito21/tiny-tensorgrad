@@ -1,8 +1,7 @@
 from typing import Sequence
 
-import math
 import numpy as np
-from scipy.signal import convolve2d, correlate2d
+from scipy.signal import correlate2d
 from graphviz import Digraph
 
 def sum_if_need(out_shape, in_data):
@@ -63,7 +62,14 @@ class Tensor:
         return out
 
     def __getitem__(self, slice):
-        return Tensor(self.data[slice])
+        out = Tensor(self.data[slice], prev=(self,), op="slice")
+
+        def _backward():
+            self.grad[slice] += out.grad
+
+        out._backward_func = _backward
+
+        return out
 
     def __add__(self, other):
         other = other if isinstance(other, Tensor) else Tensor(other)
