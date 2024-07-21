@@ -4,6 +4,9 @@ import numpy as np
 
 from engine import Tensor
 
+def uniform(shape, min=-1, max=1):
+    return (max - min)*np.random.rand(*shape) + min
+
 class Module:
 
     def zero_grad(self):
@@ -33,9 +36,9 @@ class Linear(Module):
         self.use_bias = use_bias
         self.name = name
 
-        self.weights = Tensor(2*np.random.rand(features_out, features_in) - 1, label=name+" Weight")
+        self.weights = Tensor(uniform((features_out, features_in), -np.sqrt(1/features_in), np.sqrt(1/features_in)), label=name+" Weight")
         if use_bias:
-            self.bias = Tensor(2*np.random.rand(features_out) - 1, label=name+" bias")
+            self.bias = Tensor(uniform((features_out,), -np.sqrt(1/features_in), np.sqrt(1/features_in)), label=name+" bias")
 
     def __call__(self, x: Tensor) -> Tensor:
         out = x @ self.weights.T
@@ -55,9 +58,10 @@ class Conv2d(Module):
         self.use_bias = use_bias
         self.name = name
 
-        self.weights = Tensor(2*np.random.rand(channels_out, channels_in, *kernel_size) - 1, label=name+" Weight")
+        sqrt_k = np.sqrt(1/(channels_in)*np.prod(kernel_size))
+        self.weights = Tensor(uniform((channels_out, channels_in, *kernel_size), -sqrt_k, sqrt_k), label=name+" Weight")
         if use_bias:
-            self.bias = Tensor(2*np.random.rand(1, channels_out, 1, 1) - 1, label=name+" bias")
+            self.bias = Tensor(uniform((1, channels_out, 1, 1), -sqrt_k, sqrt_k), label=name+" bias")
 
     def __call__(self, x: Tensor) -> Tensor:
 
@@ -69,6 +73,15 @@ class Conv2d(Module):
 
     def parameters(self):
         return [self.weights, self.bias]
+
+class AvgPooling(Module):
+    def __init__(self, kernel_size=(3, 3), name=""):
+        self.name = name
+        self.kernel_size = kernel_size
+
+    def __call__(self, x: Tensor):
+        assert x.data.ndim == 4, "Input must have 4 dimensions (batch, channels, x, y)"
+        return x.avg_pooling(self.kernel_size)
 
 class Flatten(Module):
     def __init__(self) -> None:

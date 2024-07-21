@@ -120,12 +120,24 @@ class TestOp(unittest.TestCase):
         x = Tensor(np.random.rand(32, 6, 128, 128))
         f = Tensor(np.random.rand(8, 6, 3, 3))
 
-        out = x.convolve2d(f)
+        out = x.convolve2d(f, pad=((1, 1), (1, 1)))
 
         x = torch.from_numpy(x.data)
         f = torch.from_numpy(f.data)
 
-        out_torch = F.conv2d(x, f)
+        out_torch = F.conv2d(x, f, padding=1)
+        self.assertTrue(np.allclose(out.data, out_torch.numpy()))
+
+    def test_avg_poll(self):
+        x = Tensor(np.random.rand(32, 6, 128, 128))
+        f = Tensor(np.random.rand(8, 6, 3, 3))
+
+        out = x.convolve2d(f).avg_pooling((2, 2))
+
+        x = torch.from_numpy(x.data)
+        f = torch.from_numpy(f.data)
+
+        out_torch = F.avg_pool2d(F.conv2d(x, f), (2, 2))
         self.assertTrue(np.allclose(out.data, out_torch.numpy()))
 
     def test_reduce_sum(self):
@@ -367,7 +379,7 @@ class TestGrad(unittest.TestCase):
         out_torch = torch.stack([aa @ bb for aa, bb in zip(a_torch, b_torch)], 1)
         out_torch.backward(gradient=torch.ones_like(out_torch))
 
-        self.assertTrue(np.allclose(a[0].grad, a_torch[0].grad.numpy()))
+        self.assertTrue(all(np.allclose(a[i].grad, a_torch[i].grad.numpy())) for i in range(10))
 
     def test_conv2d(self):
         x = Tensor(np.random.rand(32, 6, 128, 128))
@@ -381,7 +393,26 @@ class TestGrad(unittest.TestCase):
         f_torch = torch.from_numpy(f.data)
         f_torch.requires_grad = True
 
-        out_torch = F.conv2d(x_torch, f_torch)
+        out_torch = F.conv2d(x_torch, f_torch, padding=0)
+        out_torch.backward(gradient=torch.ones_like(out_torch))
+
+        self.assertTrue(np.allclose(x.grad, x_torch.grad.numpy()) and np.allclose(f.grad, f_torch.grad.numpy()))
+
+    def test_avg_pool(self):
+        x = Tensor(np.random.rand(32, 6, 28, 28))
+        f = Tensor(np.random.rand(6, 6, 3, 3))
+
+        out = x.convolve2d(f).avg_pooling((2, 2)).convolve2d(f).avg_pooling((2, 2))
+        # out = x.convolve2d(f).avg_pooling((2, 2))
+        out.backward()
+
+        x_torch = torch.from_numpy(x.data)
+        x_torch.requires_grad = True
+        f_torch = torch.from_numpy(f.data)
+        f_torch.requires_grad = True
+
+        out_torch = F.avg_pool2d(F.conv2d(x_torch, f_torch), (2, 2))
+        out_torch = F.avg_pool2d(F.conv2d(out_torch, f_torch), (2, 2))
         out_torch.backward(gradient=torch.ones_like(out_torch))
 
         self.assertTrue(np.allclose(x.grad, x_torch.grad.numpy()) and np.allclose(f.grad, f_torch.grad.numpy()))
